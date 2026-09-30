@@ -1,0 +1,46 @@
+# =============================================
+# ECOBIN - GitHub se HATANE wali files
+# =============================================
+
+# ❌ Node Modules (bahut bada hota hai, npm install se wapas aata hai)
+node_modules/
+**/node_modules/
+
+# ❌ Environment Variables (SECRET keys kabhi push mat karo!)
+.env
+.env.local
+.env.development
+.env.production
+**/.env
+
+# ❌ Frontend Build (deploy ke waqt generate hota hai)
+frontend/dist/
+frontend/build/
+
+# ❌ Database JSON files (bahut bade hain - 450KB+ aur sensitive data)
+backend/config/ecobin_database.json
+backend/config/ecobin_production_db.json
+
+# ❌ Uploaded Files (user data, GitHub ke liye nahi)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# ❌ OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ❌ IDE / Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ❌ Logs
+*.log
+npm-debug.log*
+
+# ❌ Cache
+.cache/
+.parcel-cache/
+.vite/

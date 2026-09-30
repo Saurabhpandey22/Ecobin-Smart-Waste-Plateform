@@ -38,6 +38,78 @@ const initialDatabaseState = {
       created_at: new Date(Date.now() - 30 * 86400000).toISOString()
     },
     {
+      id: 9,
+      name: 'Rameshwar Yadav (Zonal Sanitation Lead)',
+      email: 'rameshwar.staff@ecobin.in',
+      password_hash: bcrypt.hashSync('Password@123', 10),
+      role: 'staff',
+      phone: '+91 98761 11223',
+      ward_area: 'Ward 08 - South Extension',
+      eco_points: 210,
+      is_verified: 1,
+      created_at: new Date(Date.now() - 25 * 86400000).toISOString()
+    },
+    {
+      id: 10,
+      name: 'Mohd. Aslam (Rapid Clearance Truck 04)',
+      email: 'aslam.staff@ecobin.in',
+      password_hash: bcrypt.hashSync('Password@123', 10),
+      role: 'staff',
+      phone: '+91 98234 55667',
+      ward_area: 'Ward 21 - Karol Bagh',
+      eco_points: 185,
+      is_verified: 1,
+      created_at: new Date(Date.now() - 20 * 86400000).toISOString()
+    },
+    {
+      id: 11,
+      name: 'Sunita Devi (Ward Sanitation Inspector)',
+      email: 'sunita.staff@ecobin.in',
+      password_hash: bcrypt.hashSync('Password@123', 10),
+      role: 'staff',
+      phone: '+91 98456 77889',
+      ward_area: 'Ward 03 - Rohini Sector 9',
+      eco_points: 240,
+      is_verified: 1,
+      created_at: new Date(Date.now() - 18 * 86400000).toISOString()
+    },
+    {
+      id: 12,
+      name: 'Gurpreet Singh (Compactor Vehicle Driver)',
+      email: 'gurpreet.staff@ecobin.in',
+      password_hash: bcrypt.hashSync('Password@123', 10),
+      role: 'staff',
+      phone: '+91 98789 22334',
+      ward_area: 'Ward 11 - Lajpat Nagar',
+      eco_points: 195,
+      is_verified: 1,
+      created_at: new Date(Date.now() - 14 * 86400000).toISOString()
+    },
+    {
+      id: 13,
+      name: 'Dinesh Meena (Field Task Supervisor)',
+      email: 'dinesh.staff@ecobin.in',
+      password_hash: bcrypt.hashSync('Password@123', 10),
+      role: 'staff',
+      phone: '+91 98901 44556',
+      ward_area: 'Ward 05 - Dwarka Sector 10',
+      eco_points: 170,
+      is_verified: 1,
+      created_at: new Date(Date.now() - 10 * 86400000).toISOString()
+    },
+    {
+      id: 14,
+      name: 'Amit Verma (Special Pickup & E-Waste Lead)',
+      email: 'amit.staff@ecobin.in',
+      password_hash: bcrypt.hashSync('Password@123', 10),
+      role: 'staff',
+      phone: '+91 98321 88990',
+      ward_area: 'Ward 19 - Mayur Vihar Phase 1',
+      eco_points: 220,
+      is_verified: 1,
+      created_at: new Date(Date.now() - 8 * 86400000).toISOString()
+    },
+    {
       id: 3,
       name: 'Vikramaditya Rao (Swachh Municipal Admin)',
       email: 'admin@ecobin.in',
@@ -182,6 +254,13 @@ class ProductionDatabase {
       if (fs.existsSync(DB_FILE)) {
         const content = fs.readFileSync(DB_FILE, 'utf-8');
         this.data = JSON.parse(content);
+        if (!this.data.users) this.data.users = [];
+        for (const u of initialDatabaseState.users) {
+          if (!this.data.users.some(existing => existing.id === u.id)) {
+            this.data.users.push(u);
+          }
+        }
+        this.persist();
       } else {
         this.data = JSON.parse(JSON.stringify(initialDatabaseState));
         this.persist();

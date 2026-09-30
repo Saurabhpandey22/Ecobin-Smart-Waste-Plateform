@@ -12,6 +12,7 @@ export default function CitizenPortal({ user, lang, onOpenReportModalSignal }) {
   const t = translations[lang] || translations.en;
   
   const [activeTab, setActiveTab] = useState('report'); // 'report' | 'pickup' | 'history'
+  const [historyType, setHistoryType] = useState('all'); // 'all' | 'complaints' | 'pickups'
   const [myComplaints, setMyComplaints] = useState([]);
   const [myPickups, setMyPickups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -123,6 +124,7 @@ export default function CitizenPortal({ user, lang, onOpenReportModalSignal }) {
       if (res.success) {
         alert(res.message);
         setPickupNotes('');
+        setHistoryType('pickups');
         setActiveTab('history');
         loadUserData();
       }
@@ -395,20 +397,142 @@ export default function CitizenPortal({ user, lang, onOpenReportModalSignal }) {
       {/* TAB 3: REAL-TIME COMPLAINTS & PICKUP TIMELINE TRACKER */}
       {activeTab === 'history' && (
         <div className="space-y-4">
-          <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">
-            Real-Time Grievance & Pickup Progress Tracker
-          </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">
+                Real-Time Grievance & Pickup Progress Tracker
+              </h3>
+              <p className="text-xs text-slate-400">Track all your submitted waste complaints and scheduled doorstep collections.</p>
+            </div>
+
+            {/* Filter Toggle: All | Grievances | Doorstep Pickups */}
+            <div className="flex items-center space-x-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold self-start">
+              <button
+                type="button"
+                onClick={() => setHistoryType('all')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  historyType === 'all'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                All ({myComplaints.length + myPickups.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistoryType('complaints')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  historyType === 'complaints'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                Grievances ({myComplaints.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistoryType('pickups')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  historyType === 'pickups'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                Doorstep Pickups ({myPickups.length})
+              </button>
+            </div>
+          </div>
 
           {loading ? (
             <div className="text-center py-12 text-slate-400">Loading your history...</div>
-          ) : myComplaints.length === 0 ? (
+          ) : (myComplaints.length === 0 && myPickups.length === 0) ? (
             <div className="p-8 text-center text-xs text-slate-400 glass-panel rounded-2xl">
-              No complaints filed yet. Report an issue to earn Eco Points!
+              No requests filed yet. Report an issue or schedule a pickup to earn Eco Points!
             </div>
           ) : (
             <div className="space-y-4">
-              {myComplaints.map((c) => (
-                <div key={c.id} className="p-5 rounded-2xl glass-panel bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 space-y-4 shadow-xs">
+              
+              {/* 1. DOORSTEP PICKUPS STREAM */}
+              {(historyType === 'all' || historyType === 'pickups') && myPickups.map((p) => (
+                <div key={`pickup-${p.id}`} className="p-5 rounded-2xl glass-panel bg-white/90 dark:bg-slate-800/90 border border-teal-200/80 dark:border-teal-900/60 space-y-4 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-700/50">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 font-mono">
+                          DOORSTEP PICKUP #{p.id}
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-400">
+                          {p.created_at ? new Date(p.created_at).toLocaleDateString() : 'Recent'}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-base text-slate-900 dark:text-slate-100 capitalize mt-0.5">
+                        📦 {p.waste_type} Pickup Request
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Address: <span className="font-semibold text-slate-700 dark:text-slate-300">{p.address_text}</span> · Slot: <span className="font-semibold text-teal-600 dark:text-teal-400">{p.preferred_slot}</span>
+                      </p>
+                      {p.notes && (
+                        <p className="text-[11px] text-slate-400 mt-1 italic bg-slate-50 dark:bg-slate-900/50 p-2 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                          Note: {p.notes}
+                        </p>
+                      )}
+                    </div>
+
+                    <span className={`self-start px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                      p.status === 'completed'
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                        : p.status === 'in-transit'
+                        ? 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 animate-pulse'
+                        : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                    }`}>
+                      {p.status === 'in-transit' ? 'Truck In-Transit' : (p.status || 'Scheduled')}
+                    </span>
+                  </div>
+
+                  {/* 4-Step Progress Timeline for Doorstep Pickup */}
+                  <div className="grid grid-cols-4 gap-2 text-center text-[10px] font-bold pt-1">
+                    <div className="flex flex-col items-center">
+                      <div className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center font-extrabold">1</div>
+                      <span className="mt-1 text-slate-600 dark:text-slate-300">Requested</span>
+                    </div>
+
+                    <div className="flex flex-col items-center">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center font-extrabold ${
+                        p.assigned_staff_id || p.status === 'in-transit' || p.status === 'completed' ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                      }`}>2</div>
+                      <span className="mt-1 text-slate-600 dark:text-slate-300">Driver Assigned</span>
+                    </div>
+
+                    <div className="flex flex-col items-center">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center font-extrabold ${
+                        p.status === 'in-transit' || p.status === 'completed' ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                      }`}>3</div>
+                      <span className="mt-1 text-slate-600 dark:text-slate-300">In-Transit</span>
+                    </div>
+
+                    <div className="flex flex-col items-center">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center font-extrabold ${
+                        p.status === 'completed' ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                      }`}>4</div>
+                      <span className="mt-1 text-slate-600 dark:text-slate-300">Collected</span>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-slate-600 dark:text-slate-300 flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
+                    <div>
+                      <strong>Assigned Sanitation Vehicle / Staff:</strong>{' '}
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                        {p.assigned_staff_name || 'Allocating municipal truck driver...'}
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono text-slate-400">Reward: +40 EcoPoints Credited</span>
+                  </div>
+                </div>
+              ))}
+
+              {/* 2. COMPLAINTS STREAM */}
+              {(historyType === 'all' || historyType === 'complaints') && myComplaints.map((c) => (
+                <div key={`complaint-${c.id}`} className="p-5 rounded-2xl glass-panel bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 space-y-4 shadow-xs">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-700/50">
                     <div>
                       <span className="text-[10px] font-extrabold uppercase text-emerald-600">Complaint #{c.id}</span>
@@ -461,6 +585,7 @@ export default function CitizenPortal({ user, lang, onOpenReportModalSignal }) {
                   </div>
                 </div>
               ))}
+
             </div>
           )}
         </div>

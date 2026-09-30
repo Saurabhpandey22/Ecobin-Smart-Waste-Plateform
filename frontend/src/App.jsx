@@ -18,14 +18,14 @@ import { api, setAuthToken, getAuthToken } from './services/api';
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('dashboard'); // Default landing page: 'dashboard'
+  const [activeTab, setActiveTab] = useState('home'); // Default landing page: 'home' for guests
   const [lang, setLang] = useState('en'); // 'en' | 'hi'
   const [darkMode, setDarkMode] = useState(false);
   const [showSustainabilityModal, setShowSustainabilityModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [initializing, setInitializing] = useState(true);
 
-  // Initialize Auth on App Load (Preserves JWT token across page refresh)
+  // Initialize Auth on App Load (Preserves user JWT token across page refresh)
   useEffect(() => {
     initAuth();
   }, []);
@@ -37,23 +37,25 @@ export default function App() {
         const res = await api.getMe();
         if (res.success && res.user) {
           setUser(res.user);
+          if (res.user.role === 'admin') {
+            setActiveTab('dashboard');
+          } else if (res.user.role === 'staff') {
+            setActiveTab('staff');
+          } else {
+            setActiveTab('citizen');
+          }
           return;
         }
       }
-      // If no stored token or token invalid, initialize default Admin mode (matching grievance control center screenshot)
-      const demoRes = await api.demoSwitchRole('admin');
-      if (demoRes.success && demoRes.user) {
-        setAuthToken(demoRes.token);
-        setUser(demoRes.user);
-        setActiveTab('dashboard');
-        return;
-      }
+      // If no stored token or token invalid, clean state to guest mode
       setUser(null);
       setAuthToken(null);
+      setActiveTab('home');
     } catch (err) {
       console.warn('Auth token verification error:', err);
       setUser(null);
       setAuthToken(null);
+      setActiveTab('home');
     } finally {
       setInitializing(false);
     }

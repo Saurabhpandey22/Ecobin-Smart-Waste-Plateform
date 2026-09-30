@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   AlertCircle, Clock, CheckCircle2, RefreshCw, Filter, Search, 
-  UserCheck, MapPin, Eye, Calendar, Sparkles, FileText, Download, ShieldAlert, X, PlusCircle
+  UserCheck, MapPin, Eye, Calendar, Sparkles, FileText, Download, ShieldAlert, X, PlusCircle, Package, Truck
 } from 'lucide-react';
 import translations from '../utils/i18n';
 import { api, socket } from '../services/api';
@@ -11,6 +11,8 @@ export default function AdminComplaintsDashboard({ user, lang, onOpenSustainabil
   
   const [stats, setStats] = useState(null);
   const [complaints, setComplaints] = useState([]);
+  const [pickups, setPickups] = useState([]);
+  const [activeStreamTab, setActiveStreamTab] = useState('complaints'); // 'complaints' | 'pickups'
   const [staffList, setStaffList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
@@ -43,12 +45,31 @@ export default function AdminComplaintsDashboard({ user, lang, onOpenSustainabil
       loadDashboardData(false);
     };
 
+    // Listen to real-time pickup updates
+    const handleNewPickup = (newP) => {
+      setPickups(prev => {
+        if (prev.some(p => p.id === newP.id)) return prev;
+        return [newP, ...prev];
+      });
+      setNewAlertBadge(true);
+      loadDashboardData(false);
+    };
+
+    const handleUpdatedPickup = (updatedP) => {
+      setPickups(prev => prev.map(p => p.id === updatedP.id ? { ...p, ...updatedP } : p));
+      loadDashboardData(false);
+    };
+
     socket.on('new_complaint', handleNewComplaint);
     socket.on('complaint_updated', handleUpdatedComplaint);
+    socket.on('new_pickup_request', handleNewPickup);
+    socket.on('pickup_updated', handleUpdatedPickup);
 
     return () => {
       socket.off('new_complaint', handleNewComplaint);
       socket.off('complaint_updated', handleUpdatedComplaint);
+      socket.off('new_pickup_request', handleNewPickup);
+      socket.off('pickup_updated', handleUpdatedPickup);
     };
   }, [statusFilter, typeFilter, priorityFilter, wardFilter, staffFilter, searchQuery]);
 
@@ -56,7 +77,7 @@ export default function AdminComplaintsDashboard({ user, lang, onOpenSustainabil
     try {
       if (showLoading) setLoading(true);
 
-      const [statsRes, complaintsRes] = await Promise.all([
+      const [statsRes, complaintsRes, pickupsRes] = await Promise.all([
         api.getSummaryStats().catch(err => {
           console.error('getSummaryStats error:', err);
           return { success: false };
@@ -72,6 +93,10 @@ export default function AdminComplaintsDashboard({ user, lang, onOpenSustainabil
         }).catch(err => {
           console.error('getComplaints error:', err);
           return { success: false };
+        }),
+        api.getPickups().catch(err => {
+          console.error('getPickups error:', err);
+          return { success: false };
         })
       ]);
 
@@ -82,6 +107,10 @@ export default function AdminComplaintsDashboard({ user, lang, onOpenSustainabil
 
       if (complaintsRes && complaintsRes.success) {
         setComplaints(complaintsRes.complaints || []);
+      }
+
+      if (pickupsRes && pickupsRes.success) {
+        setPickups(pickupsRes.pickups || []);
       }
     } catch (err) {
       console.error('Failed to load admin complaints dashboard data:', err);
@@ -135,6 +164,28 @@ export default function AdminComplaintsDashboard({ user, lang, onOpenSustainabil
       }
     } catch (err) {
       alert(err.message);
+    }
+  };
+
+  const handleAssignPickupStaff = async (pickupId, staffId) => {
+    try {
+      const res = await api.updatePickupStatus(pickupId, { assigned_staff_id: staffId, status: 'in-transit' });
+      if (res.success) {
+        loadDashboardData(false);
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to assign staff to pickup');
+    }
+  };
+
+  const handleUpdatePickupStatus = async (pickupId, newStatus) => {
+    try {
+      const res = await api.updatePickupStatus(pickupId, { status: newStatus });
+      if (res.success) {
+        loadDashboardData(false);
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to update pickup status');
     }
   };
 
@@ -311,141 +362,328 @@ export default function AdminComplaintsDashboard({ user, lang, onOpenSustainabil
         </div>
       </div>
 
-      {/* Main Complaints Data Table */}
+      {/* Stream Tabs Selector */}
+      <div className="flex items-center space-x-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+        <button
+          onClick={() => setActiveStreamTab('complaints')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 ${
+            activeStreamTab === 'complaints'
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+          }`}
+        >
+          <AlertCircle className="w-4 h-4" />
+          <span>Live Complaints Stream</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+            activeStreamTab === 'complaints' ? 'bg-emerald-700 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+          }`}>
+            {complaints.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveStreamTab('pickups')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 ${
+            activeStreamTab === 'pickups'
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+          }`}
+        >
+          <Truck className="w-4 h-4" />
+          <span>Doorstep Pickup Requests</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+            activeStreamTab === 'pickups' ? 'bg-emerald-700 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+          }`}>
+            {pickups.length}
+          </span>
+        </button>
+      </div>
+
+      {/* Main Data Table Container */}
       <div className="rounded-2xl glass-panel bg-white/90 dark:bg-slate-800/90 shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-              Live Complaints Stream
+            <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center space-x-2">
+              {activeStreamTab === 'pickups' ? (
+                <>
+                  <Truck className="w-5 h-5 text-emerald-600" />
+                  <span>Doorstep Waste Pickups Queue</span>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="w-5 h-5 text-emerald-600" />
+                  <span>Live Complaints Stream</span>
+                </>
+              )}
             </h3>
             <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-              {complaints.length} Items
+              {activeStreamTab === 'pickups' ? pickups.length : complaints.length} Items
             </span>
           </div>
-          <span className="text-xs text-slate-400 italic">Unresolved issues highlighted at top</span>
+          <span className="text-xs text-slate-400 italic">
+            {activeStreamTab === 'pickups' 
+              ? 'Assign sanitation officers to doorstep requests' 
+              : 'Unresolved issues highlighted at top'}
+          </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-slate-900/60 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
-                <th className="py-3.5 px-4">Complaint ID</th>
-                <th className="py-3.5 px-4">Citizen</th>
-                <th className="py-3.5 px-4">Type</th>
-                <th className="py-3.5 px-4">Location / Ward</th>
-                <th className="py-3.5 px-4">Priority</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4">Assigned Staff</th>
-                <th className="py-3.5 px-4 text-right">Quick Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50 text-xs">
-              {loading ? (
-                <tr>
-                  <td colSpan="8" className="text-center py-12 text-slate-400">
-                    Loading live complaints stream...
-                  </td>
+        {activeStreamTab === 'pickups' ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-900/60 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                  <th className="py-3.5 px-4">Pickup ID</th>
+                  <th className="py-3.5 px-4">Citizen & Phone</th>
+                  <th className="py-3.5 px-4">Waste Category</th>
+                  <th className="py-3.5 px-4">Address & Notes</th>
+                  <th className="py-3.5 px-4">Preferred Slot</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4">Assigned Sanitation Driver</th>
+                  <th className="py-3.5 px-4 text-right">Quick Action</th>
                 </tr>
-              ) : complaints.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="text-center py-12 text-slate-400">
-                    No complaints found matching current filter parameters.
-                  </td>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50 text-xs">
+                {loading ? (
+                  <tr>
+                    <td colSpan="8" className="text-center py-12 text-slate-400">
+                      Loading doorstep pickup requests...
+                    </td>
+                  </tr>
+                ) : pickups.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="text-center py-12 text-slate-400">
+                      No doorstep pickup requests found.
+                    </td>
+                  </tr>
+                ) : (
+                  pickups.map((p) => {
+                    const isCompleted = p.status === 'completed';
+                    return (
+                      <tr
+                        key={p.id}
+                        className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-750 ${
+                          !isCompleted ? 'bg-amber-50/20 dark:bg-amber-950/10' : ''
+                        }`}
+                      >
+                        <td className="py-3 px-4 font-bold text-slate-900 dark:text-slate-100">
+                          <div className="flex items-center space-x-1.5">
+                            <Package className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>#P-{p.id}</span>
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <span className="font-semibold text-slate-800 dark:text-slate-200 block">
+                            {p.citizen_name || 'Resident Citizen'}
+                          </span>
+                          {p.citizen_phone && (
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              📞 {p.citizen_phone}
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                            {p.waste_type ? p.waste_type.replace('_', ' ') : 'General'}
+                          </span>
+                        </td>
+
+                        <td className="py-3 px-4 max-w-xs">
+                          <span className="font-medium text-slate-800 dark:text-slate-200 block truncate">
+                            {p.address_text || 'Ward Resident Address'}
+                          </span>
+                          {p.notes && (
+                            <span className="text-[10px] text-slate-400 italic block truncate">
+                              "{p.notes}"
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="py-3 px-4 font-medium text-slate-700 dark:text-slate-300">
+                          <span className="capitalize">{p.preferred_slot || 'Morning'}</span>
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <select
+                            value={p.status}
+                            onChange={(e) => handleUpdatePickupStatus(p.id, e.target.value)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold border focus:outline-none ${
+                              p.status === 'completed'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
+                                : p.status === 'in-transit'
+                                ? 'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950 dark:text-sky-300'
+                                : 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300'
+                            }`}
+                          >
+                            <option value="pending">Pending Dispatch</option>
+                            <option value="in-transit">Driver In-Transit</option>
+                            <option value="completed">Collected & Cleared</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <select
+                            value={p.assigned_staff_id || ''}
+                            onChange={(e) => handleAssignPickupStaff(p.id, e.target.value)}
+                            className="px-2 py-1 rounded-lg text-xs bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium text-slate-700 dark:text-slate-200 focus:outline-none"
+                          >
+                            <option value="">-- Assign Officer / Driver --</option>
+                            {staffList.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name} ({s.ward_area})
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+
+                        <td className="py-3 px-4 text-right">
+                          {p.status !== 'completed' ? (
+                            <button
+                              onClick={() => handleUpdatePickupStatus(p.id, 'completed')}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors inline-flex items-center space-x-1"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Complete</span>
+                            </button>
+                          ) : (
+                            <span className="text-emerald-600 font-bold text-xs inline-flex items-center space-x-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Done</span>
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-900/60 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+                  <th className="py-3.5 px-4">Complaint ID</th>
+                  <th className="py-3.5 px-4">Citizen</th>
+                  <th className="py-3.5 px-4">Type</th>
+                  <th className="py-3.5 px-4">Location / Ward</th>
+                  <th className="py-3.5 px-4">Priority</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4">Assigned Staff</th>
+                  <th className="py-3.5 px-4 text-right">Quick Action</th>
                 </tr>
-              ) : (
-                complaints.map((c) => {
-                  const isUnresolved = c.status !== 'resolved';
-                  return (
-                    <tr
-                      key={c.id}
-                      className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-750 ${
-                        isUnresolved ? 'bg-amber-50/30 dark:bg-amber-950/10' : ''
-                      }`}
-                    >
-                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-slate-100">
-                        #{c.id}
-                      </td>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50 text-xs">
+                {loading ? (
+                  <tr>
+                    <td colSpan="8" className="text-center py-12 text-slate-400">
+                      Loading live complaints stream...
+                    </td>
+                  </tr>
+                ) : complaints.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="text-center py-12 text-slate-400">
+                      No complaints found matching current filter parameters.
+                    </td>
+                  </tr>
+                ) : (
+                  complaints.map((c) => {
+                    const isUnresolved = c.status !== 'resolved';
+                    return (
+                      <tr
+                        key={c.id}
+                        className={`transition-colors hover:bg-slate-50 dark:hover:bg-slate-750 ${
+                          isUnresolved ? 'bg-amber-50/30 dark:bg-amber-950/10' : ''
+                        }`}
+                      >
+                        <td className="py-3 px-4 font-bold text-slate-900 dark:text-slate-100">
+                          #{c.id}
+                        </td>
 
-                      <td className="py-3 px-4">
-                        <span className="font-semibold text-slate-800 dark:text-slate-200 block">
-                          {c.citizen_name}
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          {new Date(c.created_at).toLocaleDateString()}
-                        </span>
-                      </td>
+                        <td className="py-3 px-4">
+                          <span className="font-semibold text-slate-800 dark:text-slate-200 block">
+                            {c.citizen_name}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {new Date(c.created_at).toLocaleDateString()}
+                          </span>
+                        </td>
 
-                      <td className="py-3 px-4 capitalize font-medium text-slate-700 dark:text-slate-300">
-                        {c.type.replace('_', ' ')}
-                      </td>
+                        <td className="py-3 px-4 capitalize font-medium text-slate-700 dark:text-slate-300">
+                          {c.type.replace('_', ' ')}
+                        </td>
 
-                      <td className="py-3 px-4 max-w-xs truncate">
-                        <span className="font-medium text-slate-800 dark:text-slate-200 block truncate">
-                          {c.address_text || c.ward_area}
-                        </span>
-                        <span className="text-[10px] text-slate-400">{c.ward_area}</span>
-                      </td>
+                        <td className="py-3 px-4 max-w-xs truncate">
+                          <span className="font-medium text-slate-800 dark:text-slate-200 block truncate">
+                            {c.address_text || c.ward_area}
+                          </span>
+                          <span className="text-[10px] text-slate-400">{c.ward_area}</span>
+                        </td>
 
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          c.priority === 'critical' || c.priority === 'high'
-                            ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
-                            : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                        }`}>
-                          {c.priority}
-                        </span>
-                      </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                            c.priority === 'critical' || c.priority === 'high'
+                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                              : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                          }`}>
+                            {c.priority}
+                          </span>
+                        </td>
 
-                      <td className="py-3 px-4">
-                        <select
-                          value={c.status}
-                          onChange={(e) => handleUpdateStatus(c.id, e.target.value)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold border focus:outline-none ${
-                            c.status === 'resolved'
-                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
-                              : c.status === 'in-progress'
-                              ? 'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950 dark:text-sky-300'
-                              : 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300'
-                          }`}
-                        >
-                          <option value="reported">Reported</option>
-                          <option value="acknowledged">Acknowledged</option>
-                          <option value="in-progress">In-Progress</option>
-                          <option value="resolved">Resolved</option>
-                        </select>
-                      </td>
+                        <td className="py-3 px-4">
+                          <select
+                            value={c.status}
+                            onChange={(e) => handleUpdateStatus(c.id, e.target.value)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold border focus:outline-none ${
+                              c.status === 'resolved'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
+                                : c.status === 'in-progress'
+                                ? 'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950 dark:text-sky-300'
+                                : 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300'
+                            }`}
+                          >
+                            <option value="reported">Reported</option>
+                            <option value="acknowledged">Acknowledged</option>
+                            <option value="in-progress">In-Progress</option>
+                            <option value="resolved">Resolved</option>
+                          </select>
+                        </td>
 
-                      <td className="py-3 px-4">
-                        <select
-                          value={c.assigned_staff_id || ''}
-                          onChange={(e) => handleAssignStaff(c.id, e.target.value)}
-                          className="px-2 py-1 rounded-lg text-xs bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium text-slate-700 dark:text-slate-200 focus:outline-none"
-                        >
-                          <option value="">-- Assign Staff --</option>
-                          {staffList.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name} ({s.ward_area})
-                            </option>
-                          ))}
-                        </select>
-                      </td>
+                        <td className="py-3 px-4">
+                          <select
+                            value={c.assigned_staff_id || ''}
+                            onChange={(e) => handleAssignStaff(c.id, e.target.value)}
+                            className="px-2 py-1 rounded-lg text-xs bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium text-slate-700 dark:text-slate-200 focus:outline-none"
+                          >
+                            <option value="">-- Assign Staff --</option>
+                            {staffList.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name} ({s.ward_area})
+                              </option>
+                            ))}
+                          </select>
+                        </td>
 
-                      <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => setSelectedComplaint(c)}
-                          className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 font-semibold text-xs transition-colors inline-flex items-center space-x-1"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Detail</span>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            onClick={() => setSelectedComplaint(c)}
+                            className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 font-semibold text-xs transition-colors inline-flex items-center space-x-1"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Detail</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Side Panel Drawer for Full Complaint Detail */}

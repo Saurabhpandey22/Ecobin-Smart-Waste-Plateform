@@ -65,13 +65,18 @@ exports.getPickupRequests = async (req, res) => {
 
     const pickups = db.findMany('pickup_requests', filterFn, (a, b) => new Date(b.created_at) - new Date(a.created_at));
     const users = db.findMany('users');
-    const userMap = new Map(users.map(u => [u.id, u.name]));
 
-    const enriched = pickups.map(p => ({
-      ...p,
-      citizen_name: userMap.get(p.user_id) || 'Citizen User',
-      assigned_staff_name: p.assigned_staff_id ? userMap.get(p.assigned_staff_id) : 'Unassigned'
-    }));
+    const enriched = pickups.map(p => {
+      const citizen = users.find(u => u.id === p.user_id);
+      const staff = p.assigned_staff_id ? users.find(u => u.id === p.assigned_staff_id) : null;
+      return {
+        ...p,
+        citizen_name: citizen ? citizen.name : 'Citizen User',
+        citizen_phone: citizen ? citizen.phone : '',
+        assigned_staff_name: staff ? staff.name : 'Unassigned',
+        assigned_staff_phone: staff ? staff.phone : ''
+      };
+    });
 
     res.status(200).json({
       success: true,
@@ -97,8 +102,21 @@ exports.updatePickupStatus = async (req, res) => {
 
     const updated = db.update('pickup_requests', pickup.id, updates);
 
+    // Notify citizen about status change
+    const notifMsg = `Update on Doorstep Pickup #${pickup.id}: Status is now '${(status || pickup.status).toUpperCase()}'.`;
+    const notif = db.insert('notifications', {
+      user_id: pickup.user_id,
+      message: notifMsg,
+      type: 'pickup_update',
+      is_read: 0,
+      link: '/citizen/pickups'
+    });
+
     const io = req.app.get('io');
-    if (io) io.emit('pickup_updated', updated);
+    if (io) {
+      io.emit('pickup_updated', updated);
+      io.emit(`notification_user_${pickup.user_id}`, notif);
+    }
 
     res.status(200).json({
       success: true,

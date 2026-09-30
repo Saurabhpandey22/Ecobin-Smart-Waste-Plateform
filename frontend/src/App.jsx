@@ -184,7 +184,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-250">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 bg-mesh-light dark:bg-mesh-dark text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-300">
       
       {/* Top Navigation Bar */}
       <Navbar

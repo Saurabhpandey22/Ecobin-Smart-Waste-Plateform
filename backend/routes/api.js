@@ -57,6 +57,9 @@ router.post('/bins/toggle-simulator', authenticateToken, requireRole('admin'), b
 router.get('/admin/summary-stats', authenticateToken, adminController.getSummaryStats);
 router.get('/admin/route-optimization', authenticateToken, requireRole('staff', 'admin'), adminController.getRouteOptimization);
 router.get('/admin/sustainability-report', authenticateToken, adminController.getSustainabilityReport);
+router.get('/admin/users', authenticateToken, requireRole('admin'), adminController.getUsersList);
+router.put('/admin/users/:id/role', authenticateToken, requireRole('admin'), adminController.updateUserRole);
+router.post('/admin/users/grant-access', authenticateToken, requireRole('admin'), adminController.promoteUserByEmail);
 
 // --- Eco Points & Rewards Routes ---
 router.get('/eco/summary', authenticateToken, ecoController.getEcoSummary);

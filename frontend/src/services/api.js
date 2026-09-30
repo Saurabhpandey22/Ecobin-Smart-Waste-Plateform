@@ -95,6 +95,9 @@ export const api = {
   getSummaryStats: () => request('/admin/summary-stats'),
   getRouteOptimization: (staffId) => request(`/admin/route-optimization?staffId=${staffId || ''}`),
   getSustainabilityReport: () => request('/admin/sustainability-report'),
+  getUsersList: () => request('/admin/users'),
+  updateUserRole: (id, role) => request(`/admin/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }),
+  grantAdminAccess: (email, role = 'admin') => request('/admin/users/grant-access', { method: 'POST', body: JSON.stringify({ email, role }) }),
 
   // Eco
   getEcoSummary: () => request('/eco/summary'),

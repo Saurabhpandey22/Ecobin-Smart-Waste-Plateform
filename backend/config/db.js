@@ -111,7 +111,7 @@ const initialDatabaseState = {
     },
     {
       id: 3,
-      name: 'Vikramaditya Rao (Swachh Municipal Admin)',
+      name: 'Saurabh Pandey (Super Admin)',
       email: 'admin@ecobin.in',
       password_hash: bcrypt.hashSync('Password@123', 10),
       role: 'admin',
@@ -259,6 +259,11 @@ class ProductionDatabase {
           if (!this.data.users.some(existing => existing.id === u.id)) {
             this.data.users.push(u);
           }
+        }
+        // Update admin name to Saurabh Pandey (Super Admin)
+        const adminUser = this.data.users.find(u => u.email === 'admin@ecobin.in');
+        if (adminUser) {
+          adminUser.name = 'Saurabh Pandey (Super Admin)';
         }
         this.persist();
       } else {

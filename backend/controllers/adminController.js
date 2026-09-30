@@ -112,3 +112,101 @@ exports.getSustainabilityReport = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to generate sustainability report.', error: err.message });
   }
 };
+
+/**
+ * Access Control: List all registered municipal users
+ */
+exports.getUsersList = async (req, res) => {
+  try {
+    const users = db.findMany('users', null, (a, b) => b.id - a.id);
+    const sanitized = users.map(u => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      phone: u.phone,
+      ward_area: u.ward_area,
+      eco_points: u.eco_points,
+      created_at: u.created_at
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: sanitized.length,
+      users: sanitized
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to retrieve users list.', error: err.message });
+  }
+};
+
+/**
+ * Access Control: Super Admin permission-based role update
+ */
+exports.updateUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!['admin', 'staff', 'citizen'].includes(role)) {
+      return res.status(400).json({ success: false, message: 'Invalid role specified. Must be admin, staff, or citizen.' });
+    }
+
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Permission Denied: Only authorized Administrator can change user permissions.' });
+    }
+
+    const targetUser = db.findOne('users', u => u.id === Number(id));
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User account not found.' });
+    }
+
+    if (targetUser.email === 'admin@ecobin.in' && role !== 'admin') {
+      return res.status(400).json({ success: false, message: 'Super Admin account (Saurabh Pandey) cannot be demoted.' });
+    }
+
+    db.update('users', targetUser.id, { role });
+
+    res.status(200).json({
+      success: true,
+      message: `Permission updated! '${targetUser.name}' is now assigned role: '${role.toUpperCase()}'.`,
+      user: { id: targetUser.id, name: targetUser.name, email: targetUser.email, role }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to update user permission.', error: err.message });
+  }
+};
+
+/**
+ * Access Control: Grant Admin / Staff permission by email
+ */
+exports.promoteUserByEmail = async (req, res) => {
+  try {
+    const { email, role = 'admin' } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email address is required.' });
+    }
+
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Permission Denied: Only authorized Administrator can grant admin privileges.' });
+    }
+
+    const targetUser = db.findOne('users', u => u.email.toLowerCase() === email.trim().toLowerCase());
+    if (!targetUser) {
+      return res.status(404).json({ 
+        success: false, 
+        message: `No registered user found with email '${email}'. Please ask them to register on Ecobin first, then grant them Admin access.` 
+      });
+    }
+
+    db.update('users', targetUser.id, { role });
+
+    res.status(200).json({
+      success: true,
+      message: `Permission Granted! '${targetUser.name}' (${targetUser.email}) has been granted '${role.toUpperCase()}' privileges by Saurabh Pandey.`,
+      user: { id: targetUser.id, name: targetUser.name, email: targetUser.email, role }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to grant admin access.', error: err.message });
+  }
+};

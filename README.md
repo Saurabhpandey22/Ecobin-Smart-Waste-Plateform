@@ -1,96 +1,104 @@
-﻿<div align="center">
+<div align="center">
 
 # 🌱 EcoBin — Smart Waste Management Platform
 
 ### *Swachh Bharat, Swastha Bharat* 🇮🇳
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![CI Build & Validation](https://github.com/Saurabhpandey22/Ecobin-Smart-Waste-Plateform/actions/workflows/ci.yml/badge.svg)](https://github.com/Saurabhpandey22/Ecobin-Smart-Waste-Plateform/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-v18+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-v19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Socket.io](https://img.shields.io/badge/Socket.io-Realtime-010101?logo=socket.io)](https://socket.io/)
 [![Vite](https://img.shields.io/badge/Vite-v6-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 
-**EcoBin** ek AI-powered, IoT-enabled Smart Waste Management Platform hai jo Indian cities ke liye design kiya gaya hai. Real-time sensor data, citizen complaints, gamification aur admin dashboard — sab kuch ek jagah!
+**EcoBin** ek AI-powered, IoT-enabled Smart Waste Management Platform hai jo Indian cities ke liye design kiya gaya hai. Real-time sensor data, citizen complaints, gamification aur admin dashboard — sab kuch ek unified ecosystem mein!
+
+[Architecture](./docs/ARCHITECTURE.md) • [Contributing](./CONTRIBUTING.md) • [License](./LICENSE) • [Report Issue](https://github.com/Saurabhpandey22/Ecobin-Smart-Waste-Plateform/issues)
 
 </div>
 
 ---
 
-## 🚀 Live Features
+## 🚀 Key Features
 
 | Feature | Description |
 |---------|-------------|
-| 🗺️ **Live Smart Bin Map** | Real-time IoT sensor data ke saath interactive map (Leaflet.js) |
-| 📊 **Admin Dashboard** | Complaints manage karo, bins monitor karo, staff assign karo |
-| 👤 **Citizen Portal** | Complaint darz karo, photos upload karo, status track karo |
-| 🤖 **AI Assistant** | Waste management ke baare mein guide karta hai |
-| 🎮 **Gamification** | Points, badges aur leaderboard system |
-| 📡 **Real-Time WebSockets** | Socket.io se live bin level updates |
-| 🔐 **JWT Authentication** | Secure login for Admin, Staff aur Citizens |
-| 🌡️ **IoT Simulator** | Smart bin sensors ka real-time simulation |
-| 🗑️ **Heatmap View** | Garbage hotspots ka visual analysis |
-| 📱 **Responsive Design** | Mobile aur Desktop dono pe kaam karta hai |
+| 🗺️ **Live Smart Bin Map** | Real-time IoT sensor telemetry data with interactive Leaflet map |
+| 📊 **Admin Dashboard** | Manage complaints, monitor bin fill levels, dispatch staff |
+| 👤 **Citizen Portal** | Lodge photo & geo-tagged complaints, real-time resolution tracker |
+| 🤖 **AI Assistant** | Smart waste segregation & compost recommendations |
+| 🎮 **Eco-Gamification** | Reward points, green badges, and community leaderboard |
+| 📡 **Real-Time WebSockets** | Instant fill percentage & task updates via Socket.io |
+| 🔐 **JWT Authentication** | Role-based secure access for Admin, Field Staff & Citizens |
+| 🌡️ **IoT Telemetry Simulator** | Background sensor simulation for testing without hardware |
+| 🗑️ **Heatmap View** | Visual high-density waste generation hotspot analysis |
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Frontend
-- **React 19** — UI Framework
-- **Vite 6** — Build Tool
-- **Tailwind CSS** — Styling
-- **Leaflet.js + React-Leaflet** — Interactive Maps
-- **Chart.js + React-ChartJS-2** — Data Visualization
-- **Socket.io Client** — Real-time Communication
-- **Lucide React** — Icons
-
-### Backend
-- **Node.js + Express.js** — REST API Server
-- **Socket.io** — WebSocket Server
-- **JSON Database** — File-based data storage (no external DB required!)
-- **JWT (jsonwebtoken)** — Authentication
-- **Multer** — Image/File Upload
-- **bcryptjs** — Password Hashing
-- **dotenv** — Environment Config
+- **Frontend**: React 19, Vite 6, Tailwind CSS, Leaflet.js, Chart.js, Socket.io-client, Lucide Icons
+- **Backend**: Node.js, Express.js, Socket.io, JWT, Multer, bcryptjs
+- **Database & Storage**: Embedded zero-config JSON database + local file store
+- **DevOps & CI/CD**: GitHub Actions automated build & lint workflow
 
 ---
 
-## 📁 Project Structure
+## 🔑 Demo Access Credentials
 
-```
-smart-garbage-collector/
-├── 📂 backend/
-│   ├── config/          # Database config & JSON DB files
-│   ├── controllers/     # API route handlers
-│   ├── middleware/      # Auth middleware
-│   ├── routes/          # API routes
-│   ├── services/        # IoT Simulator service
-│   ├── uploads/         # User uploaded images
-│   ├── server.js        # Main Express server
-│   └── package.json
-│
-├── 📂 frontend/
-│   ├── src/
-│   │   ├── components/  # React components (14 components)
-│   │   ├── services/    # API & Socket service
-│   │   ├── utils/       # Helper functions
-│   │   ├── App.jsx      # Main App component
-│   │   └── main.jsx     # React entry point
-│   └── package.json
-│
-└── 📂 docs/
-    └── ARCHITECTURE.md  # System architecture details
-```
-
-
+| Role | Username | Password | Access Capabilities |
+|------|----------|----------|---------------------|
+| 👑 **Admin** | `admin` | `admin123` | Full dashboard, complaint lifecycle, route planning |
+| 👷 **Staff** | `staff1` | `staff123` | Assigned bin pickups, task status toggle |
+| 👤 **Citizen** | `citizen1` | `citizen123` | File complaints, view points, leaderboard |
 
 ---
 
-## 🔑 Demo Login Credentials
+<details>
+<summary><b>⚡ Quickstart & Local Setup Guide (Click to expand)</b></summary>
 
-| Role | Username | Password |
-|------|----------|----------|
-| 👑 Admin | `admin` | `admin123` |
-| 👷 Staff | `staff1` | `staff123` |
-| 👤 Citizen | `citizen1` | `citizen123` |
+### 1. Clone the Repository
+```bash
+git clone https://github.com/Saurabhpandey22/Ecobin-Smart-Waste-Plateform.git
+cd Ecobin-Smart-Waste-Plateform
+```
 
+### 2. Backend Setup
+```bash
+cd backend
+npm install
+copy .env.example .env
+npm run dev
+# Running on http://localhost:5000
+```
+
+### 3. Frontend Setup
+```bash
+cd ../frontend
+npm install
+npm run dev
+# Running on http://localhost:3000
+```
+
+Open **http://localhost:3000** in your browser.
+</details>
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions from developers passionate about clean tech and smart cities! Please read our [Contributing Guide](./CONTRIBUTING.md) to get started.
+
+---
+
+## 📄 License
+
+Distributed under the MIT License. See [LICENSE](./LICENSE) for details.
+
+---
+
+<div align="center">
+
+Made with ❤️ for **Swachh Bharat Abhiyan** 🇮🇳
+
+</div>

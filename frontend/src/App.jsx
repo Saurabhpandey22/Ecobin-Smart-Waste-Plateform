@@ -18,7 +18,7 @@ import { api, setAuthToken, getAuthToken } from './services/api';
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('home'); // Default landing page: 'home'
+  const [activeTab, setActiveTab] = useState('dashboard'); // Default landing page: 'dashboard'
   const [lang, setLang] = useState('en'); // 'en' | 'hi'
   const [darkMode, setDarkMode] = useState(false);
   const [showSustainabilityModal, setShowSustainabilityModal] = useState(false);
@@ -40,7 +40,14 @@ export default function App() {
           return;
         }
       }
-      // If no stored token or token invalid, clear state to guest mode
+      // If no stored token or token invalid, initialize default Admin mode (matching grievance control center screenshot)
+      const demoRes = await api.demoSwitchRole('admin');
+      if (demoRes.success && demoRes.user) {
+        setAuthToken(demoRes.token);
+        setUser(demoRes.user);
+        setActiveTab('dashboard');
+        return;
+      }
       setUser(null);
       setAuthToken(null);
     } catch (err) {

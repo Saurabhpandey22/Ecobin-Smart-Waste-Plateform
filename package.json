@@ -5,7 +5,7 @@
   "description": "Full-stack Smart Waste Management Platform with IoT & AI",
   "scripts": {
     "build": "npm run build:frontend && npm run build:backend",
-    "build:frontend": "cd frontend && npm install && npm run build",
+    "build:frontend": "cd frontend && npm install --include=dev && npm run build",
     "build:backend": "cd backend && npm install",
     "start": "cd backend && npm start"
   },

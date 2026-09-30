@@ -24,11 +24,14 @@ exports.signup = async (req, res) => {
 
     const password_hash = await bcrypt.hash(password, 10);
 
+    // SECURITY: Public registration cannot create administrator accounts
+    const assignedRole = role === 'staff' ? 'staff' : 'citizen';
+
     const newUser = db.insert('users', {
       name,
       email: email.toLowerCase(),
       password_hash,
-      role: ['citizen', 'staff', 'admin'].includes(role) ? role : 'citizen',
+      role: assignedRole,
       phone,
       ward_area,
       eco_points: 50, // 50 Welcome Eco Points!
@@ -145,7 +148,16 @@ exports.login = async (req, res) => {
 exports.demoSwitchRole = async (req, res) => {
   try {
     const { role } = req.body;
-    const targetRole = ['admin', 'staff', 'citizen'].includes(role) ? role : 'admin';
+
+    // SECURITY RESTRICTION: Block anyone from acquiring admin privileges via demo-switch
+    if (role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: Administrator role requires formal login with verified admin email and password.'
+      });
+    }
+
+    const targetRole = role === 'staff' ? 'staff' : 'citizen';
 
     const user = db.findOne('users', u => u.role === targetRole);
     if (!user) {

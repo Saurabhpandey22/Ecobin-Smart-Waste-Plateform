@@ -153,18 +153,17 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
               </div>
             </div>
 
-            {/* Quick Demo Credentials Buttons */}
+            {/* Quick Demo Credentials Buttons (Staff / Citizen only - Admin requires private credentials) */}
             <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 space-y-1.5 border border-slate-200/60 dark:border-slate-700/60">
               <span className="text-[10px] font-bold uppercase text-slate-400 block">Quick 1-Click Demo Login:</span>
-              <div className="grid grid-cols-3 gap-1.5">
-                <button type="button" onClick={() => fillDemoUser('admin')} className="py-1 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold text-[10px]">
-                  🛡️ Admin
+              <div className="grid grid-cols-2 gap-1.5">
+                <button type="button" onClick={() => fillDemoUser('staff')} className="py-1.5 rounded-lg bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 font-bold text-[10px] flex items-center justify-center space-x-1">
+                  <span>🚛</span>
+                  <span>Field Staff</span>
                 </button>
-                <button type="button" onClick={() => fillDemoUser('staff')} className="py-1 rounded-lg bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 font-bold text-[10px]">
-                  🚛 Staff
-                </button>
-                <button type="button" onClick={() => fillDemoUser('citizen')} className="py-1 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold text-[10px]">
-                  🏡 Citizen
+                <button type="button" onClick={() => fillDemoUser('citizen')} className="py-1.5 rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold text-[10px] flex items-center justify-center space-x-1">
+                  <span>🏡</span>
+                  <span>Citizen Resident</span>
                 </button>
               </div>
             </div>
@@ -223,7 +222,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
                 >
                   <option value="citizen">Citizen User</option>
                   <option value="staff">Collection Staff</option>
-                  <option value="admin">Administrator</option>
                 </select>
               </div>
 

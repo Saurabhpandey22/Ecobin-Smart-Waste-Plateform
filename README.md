@@ -82,49 +82,7 @@ smart-garbage-collector/
     └── ARCHITECTURE.md  # System architecture details
 ```
 
----
 
-## ⚡ Local Setup (Apne PC pe chalao)
-
-### Prerequisites
-- [Node.js v18+](https://nodejs.org/) installed hona chahiye
-
-### Step 1: Repository Clone karo
-```bash
-git clone https://github.com/YOUR_USERNAME/smart-garbage-collector.git
-cd smart-garbage-collector
-```
-
-### Step 2: Backend Setup
-```bash
-cd backend
-npm install
-copy .env.example .env
-```
-
-### Step 3: Frontend Setup
-```bash
-cd ../frontend
-npm install
-```
-
-### Step 4: Dono Servers Start Karo
-
-**Terminal 1 — Backend:**
-```bash
-cd backend
-npm run dev
-# Chalega: http://localhost:5000
-```
-
-**Terminal 2 — Frontend:**
-```bash
-cd frontend
-npm run dev
-# Chalega: http://localhost:3000
-```
-
-Phir browser mein kholo: **http://localhost:3000**
 
 ---
 
@@ -136,50 +94,3 @@ Phir browser mein kholo: **http://localhost:3000**
 | 👷 Staff | `staff1` | `staff123` |
 | 👤 Citizen | `citizen1` | `citizen123` |
 
----
-
-## 📡 API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/auth/login` | User login |
-| `POST` | `/api/auth/register` | New user register |
-| `GET` | `/api/bins` | Smart bins ki list |
-| `GET` | `/api/complaints` | Sari complaints |
-| `POST` | `/api/complaints` | Nayi complaint |
-| `PATCH` | `/api/complaints/:id` | Complaint update |
-| `POST` | `/api/upload` | Image upload |
-| `GET` | `/health` | Server health check |
-
-### WebSocket Events
-| Event | Description |
-|-------|-------------|
-| `bin-update` | Real-time bin fill level update |
-| `new-complaint` | New complaint notification |
-| `complaint-update` | Complaint status changed |
-
----
-
-## 🤝 Contribute Kaise Karein
-
-1. **Fork** karo is repository ko
-2. **Branch** banao: `git checkout -b feature/nayi-feature`
-3. **Commit** karo: `git commit -m "feat: nayi feature add ki"`
-4. **Push** karo: `git push origin feature/nayi-feature`
-5. **Pull Request** kholo
-
----
-
-## 📄 License
-
-MIT License — Free use karo, modify karo, share karo!
-
----
-
-<div align="center">
-
-Made with ❤️ for a **Swachh Bharat** 🇮🇳
-
-**EcoBin** — Ek Swachh Kal Ki Taraf Ek Kadam
-
-</div>

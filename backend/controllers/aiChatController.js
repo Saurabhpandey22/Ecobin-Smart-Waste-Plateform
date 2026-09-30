@@ -1,78 +1,192 @@
 /**
- * Ecobin AI Chatbot Controller
- * Provides real-time intelligent guidance for waste management, recycling,
- * municipal grievance reporting, and platform navigation.
+ * Ecobin Production AI Chatbot Controller
+ * Real-time LLM integration + Swachh Bharat Multilingual Knowledge Engine (Hindi, Hinglish, English).
  */
 
-const API_KEY = process.env.AI_CHAT_API_KEY || 'sk_uvpqaay4_TOrjPEvNceIWLDCsb3fFSQun';
+// Comprehensive Swachh Bharat NLP Knowledge Engine for instant fallback
+function getLocalKnowledgeResponse(query) {
+  const q = query.toLowerCase().trim();
+
+  // 1. Greetings & Identity
+  if (/^(hi|hello|hey|namaste|pranam|kem cho|kaisa|kaise|who are you|koun ho)/.test(q)) {
+    return {
+      reply: `Namaste! 🙏 Main hoon EcoBin Swachh AI Assistant.\n\nAap mujhse kisi bhi tarah ke kachre (Plastic, E-waste, Geela/Sukha kachra) ko segregate karne ka tarika, complaint lodge karne ki vidhi, ya Smart Bins live map ke baare mein pooch sakte hain!\n\nAap kya janna chahte hain?`,
+      chips: [
+        { label: '🚨 Kachra Report Kaise Karein?', action: 'report_issue' },
+        { label: '🗑️ Green vs Blue Bin Rules', action: 'play_quiz' },
+        { label: '📍 Nearest Smart Bin Map', action: 'goto_bins' },
+        { label: '🏆 Eco Points Kaise Milenge?', action: 'play_quiz' }
+      ]
+    };
+  }
+
+  // 2. Plastic & Recyclables (Dry Waste / Sukha Kachra)
+  if (q.includes('plastic') || q.includes('bottle') || q.includes('polythene') || q.includes('sukha') || q.includes('dry') || q.includes('paper') || q.includes('cardboard') || q.includes('glass') || q.includes('can') || q.includes('tin')) {
+    return {
+      reply: `♻️ **Sukha Kachra (Dry Recyclable Waste) Guide:**\n\n• **Kaunsa Bin:** 🔵 **Blue Bin (Neela Dustbin)**\n• **Kya Daalein:** Plastic bottles, carry bags, cardboard, packaging boxes, newspaper, aluminium cans, aur glass jars.\n• **Zaroori Tip:** Plastic bottles ko crush karke daalein aur food containers ko pehle halka sa dho kar sukha lein.\n• **Eco-Points:** Blue bin segregation follow karne par aapko +25 Eco-Points milte hain!`,
+      chips: [
+        { label: '🧠 Segregation Quiz Khelein', action: 'play_quiz' },
+        { label: '🚨 Dry Waste Overflow Report Karein', action: 'report_issue' },
+        { label: '📍 Blue Bins Map Dekhein', action: 'goto_bins' }
+      ]
+    };
+  }
+
+  // 3. Wet Waste / Kitchen Waste / Geela Kachra / Compost
+  if (q.includes('geela') || q.includes('wet') || q.includes('food') || q.includes('khana') || q.includes('peel') || q.includes('chilka') || q.includes('vegetable') || q.includes('sabji') || q.includes('kitchen') || q.includes('compost') || q.includes('khad')) {
+    return {
+      reply: `🥬 **Geela Kachra (Wet Organic Waste & Composting):**\n\n• **Kaunsa Bin:** 🟢 **Green Bin (Hara Dustbin)**\n• **Kya Daalein:** Sabzi/phalon ke chhilke, bacha hua khana, chai patti, sukhe patte aur egg shells.\n• **Ghar Par Khad (Compost):** Ek matke ya bucket mein geela kachra aur thodi mitti daalkar 3-4 hafte mein behtareen organic compost taiyar kar sakte hain.\n• **Caution:** Green bin mein plastic wrapper ya polythene bilkul na daalein!`,
+      chips: [
+        { label: '🌱 Compost Guide & Quiz', action: 'play_quiz' },
+        { label: '🚨 Green Bin Full Report', action: 'report_issue' }
+      ]
+    };
+  }
+
+  // 4. E-Waste (Electronic Waste)
+  if (q.includes('e-waste') || q.includes('ewaste') || q.includes('battery') || q.includes('electronic') || q.includes('mobile') || q.includes('phone') || q.includes('wire') || q.includes('charger') || q.includes('laptop') || q.includes('computer')) {
+    return {
+      reply: `🔌 **Electronic Waste (E-Waste) Disposal:**\n\n• E-waste mein lead, mercury aur cadmium jaise toxic metals hote hain. Inhe sadharan kachre mein **kabhi na fekein**!\n• **EcoBin Solution:** EcoBin par aap **Doorstep E-Waste Pickup** schedule kar sakte hain.\n• Municipal authorized e-waste recyclers aapke ghar aakar ise pick karenge aur aapko **+40 Eco-Points** milenge!`,
+      chips: [
+        { label: '📦 Schedule E-Waste Pickup', action: 'goto_citizen' },
+        { label: '🚨 Report Dumping Spot', action: 'report_issue' }
+      ]
+    };
+  }
+
+  // 5. Hazardous / Medical / Chemical Waste
+  if (q.includes('hazard') || q.includes('paint') || q.includes('chemical') || q.includes('medicine') || q.includes('dawa') || q.includes('syringe') || q.includes('injection') || q.includes('sanitary') || q.includes('diaper') || q.includes('poison')) {
+    return {
+      reply: `☣️ **Gharelu Hanikarak Kachra (Household Hazardous Waste):**\n\n• **Kaunsa Bin:** 🔴 **Red Bin (Laal Dustbin)**\n• **Kya Aata Hai:** Expired medicines, syringes/needles, paint ke dabbe, insect spray, battery acid, aur sanitary waste.\n• **Disposal Rule:** Syringes ko safe puncture-proof container mein band karke red bin mein daalein ya nagar nigam ke hazardous collection center par bhejein.`,
+      chips: [
+        { label: '🚨 Hazardous Waste Report', action: 'report_issue' },
+        { label: '📞 Swachh Helpline (1916)', action: 'goto_citizen' }
+      ]
+    };
+  }
+
+  // 6. Complaints & Grievance Reporting
+  if (q.includes('report') || q.includes('complaint') || q.includes('shikayat') || q.includes('overflow') || q.includes('kachra') || q.includes('dump') || q.includes('gandagi') || q.includes('safai')) {
+    return {
+      reply: `🚨 **Kachra / Grievance Report Karne Ka Tarika:**\n\n1. Top menu se **"Citizen Services"** par click karein.\n2. **"Report Waste Issue"** button dabayein.\n3. Kachre ki photo click karein ya upload karein (hamara AI khud waste type detect kar lega!).\n4. Map par location pin karein aur Submit karein.\n\nNagar Nigam sanitation officer ko alert chala jayega aur aapko **+30 Eco Points** milenge!`,
+      chips: [
+        { label: '🚨 Abhi Report Karein', action: 'report_issue' },
+        { label: '📊 Meri Complaints Dekhein', action: 'goto_citizen' }
+      ]
+    };
+  }
+
+  // 7. Smart Bins & IoT Ultrasonic Sensors
+  if (q.includes('smart bin') || q.includes('bin') || q.includes('sensor') || q.includes('ultrasonic') || q.includes('dustbin') || q.includes('map') || q.includes('level') || q.includes('fill')) {
+    return {
+      reply: `📡 **EcoBin Smart Dustbin Telemetry System:**\n\nHar smart dustbin par ESP32 microcontroller aur ultrasonic sensor laga hota hai jo har 5 second mein real-time garbage fill level live update karta hai:\n\n• 🟢 **Green Marker (<50%):** Dustbin khali hai, use kar sakte hain.\n• 🟡 **Yellow Marker (50-80%):** Fill hone wala hai.\n• 🔴 **Red Marker (>80% Overflow Risk):** System automatically sanitation staff ko dispatch kar deta hai!`,
+      chips: [
+        { label: '📍 Live Smart Bins Map Kholein', action: 'goto_bins' },
+        { label: '🚨 Full Bin Report Karein', action: 'report_issue' }
+      ]
+    };
+  }
+
+  // 8. Staff & Route Optimization
+  if (q.includes('staff') || q.includes('route') || q.includes('truck') || q.includes('gadi') || q.includes('driver') || q.includes('pickup') || q.includes('timing')) {
+    return {
+      reply: `🚛 **Sanitation Route Optimization Console:**\n\n• Hamara system Travelling Salesperson Problem (TSP) algorithm use karke un sabhi bins (>65% full) aur pending citizen complaints ko ek shortest optimal route mein jod deta hai.\n• Staff turn-by-turn navigation follow karke bins empty karte hain aur completion photo upload karte hain!`,
+      chips: [
+        { label: '🚛 Staff Console Kholein', action: 'goto_staff' },
+        { label: '🗺️ Waste Heatmap Dekhein', action: 'goto_heatmap' }
+      ]
+    };
+  }
+
+  // 9. Eco Points, Rewards & Leaderboard
+  if (q.includes('point') || q.includes('reward') || q.includes('leaderboard') || q.includes('badge') || q.includes('prize') || q.includes('inaam')) {
+    return {
+      reply: `🏆 **Eco-Points & Swachh Citizen Rewards:**\n\nAap alag-alag activities se Eco-Points kama sakte hain:\n• 📸 Waste Issue Report karna: **+30 Points**\n• 📦 Doorstep E-Waste Pickup: **+40 Points**\n• 🧠 Daily Waste Segregation Quiz: **+50 Points**\n\nIn points se aap Green Badges unlock kar sakte hain aur aapka naam Society Leaderboard par dikhta hai!`,
+      chips: [
+        { label: '🧠 Segregation Quiz Khelein', action: 'play_quiz' },
+        { label: '🚨 Report Waste (+30 Pts)', action: 'report_issue' }
+      ]
+    };
+  }
+
+  // 10. Helpline & Emergency
+  if (q.includes('helpline') || q.includes('number') || q.includes('phone') || q.includes('contact') || q.includes('call') || q.includes('whatsapp')) {
+    return {
+      reply: `📞 **Swachh Bharat Municipal Emergency Helplines:**\n\n• **National Swachh Helpline:** Dial **1916** (Toll-Free, 24x7)\n• **Central Grievance Portal:** 1800-11-0011\n• **Emergency Whatsapp:** +91 99999-19160\n\nAap kisi bhi emergency dead animal removal ya illegal dumping ke liye turant call kar sakte hain.`,
+      chips: [
+        { label: '🚨 File Official Grievance', action: 'report_issue' },
+        { label: '🏠 Home Page', action: 'goto_dashboard' }
+      ]
+    };
+  }
+
+  // Fallback intelligent answer
+  return {
+    reply: `Swachh Bharat & EcoBin Guidance:\n\n• **Grievance Report Karne ke liye:** "Citizen Services" mein jakar photo upload karein.\n• **Dustbin Track karne ke liye:** "Smart Bins Map" par live ultrasonic level check karein.\n• **Recycling Rules:** 🟢 Green = Geela khana/peels, 🔵 Blue = Sukha plastic/paper, 🔴 Red = Chemicals/medicine.\n\nAap upar diye gaye options mein se select kar sakte hain ya apna vishay likhein!`,
+    chips: [
+      { label: '🚨 Report Waste Issue', action: 'report_issue' },
+      { label: '🗑️ Live Smart Bins Map', action: 'goto_bins' },
+      { label: '🧠 Waste Segregation Quiz', action: 'play_quiz' },
+      { label: '🚛 Staff Route Console', action: 'goto_staff' }
+    ]
+  };
+}
 
 exports.handleAIChat = async (req, res) => {
   try {
-    const { message, userRole = 'citizen', history = [] } = req.body;
+    const { message, userRole = 'citizen' } = req.body;
 
-    if (!message) {
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return res.status(400).json({ success: false, message: 'Message query is required.' });
     }
 
-    // Try calling external LLM API if available, or use intelligent Swachh AI engine
-    let replyText = '';
-    let actionChips = [];
+    const trimmedQuery = message.trim();
 
-    const query = message.toLowerCase();
+    // 1. Try calling live free LLM API with strict 3.5s timeout
+    try {
+      const prompt = `You are EcoBin, a smart, polite Swachh Bharat AI assistant. Help the citizen with their waste management, recycling, dustbin, or sanitation query. Answer in crisp Hinglish (or Hindi/English matching the user) in 3-5 sentences with clear bullet points. User query: "${trimmedQuery}"`;
 
-    if (query.includes('report') || query.includes('overflow') || query.includes('garbage') || query.includes('dustbin') || query.includes('dump')) {
-      replyText = `To report overflowing garbage or waste dump:\n1. Click "Citizen Services" or "Report Waste Issue".\n2. Upload a photo or describe the waste — our AI Classifier will auto-detect the category!\n3. Select your location pin and submit.\n4. You will instantly earn +30 Eco Points!`;
-      actionChips = [
-        { label: '🚨 Report Waste Issue Now', action: 'report_issue' },
-        { label: '📊 View My Complaints', action: 'goto_citizen' }
-      ];
-    } else if (query.includes('bin') || query.includes('smart') || query.includes('sensor') || query.includes('map')) {
-      replyText = `Ecobin Smart Dustbins use ESP32 ultrasonic sensors to transmit fill levels live every few seconds.\n• Green Marker: <50% fill (Normal)\n• Yellow Marker: 50-80% fill (Warning)\n• Red Marker: >80% fill (Critical Overflow Risk)\nWhen a bin crosses 80%, staff are auto-dispatched!`;
-      actionChips = [
-        { label: '🗑️ Open Live Smart Bins Map', action: 'goto_bins' }
-      ];
-    } else if (query.includes('route') || query.includes('staff') || query.includes('pickup') || query.includes('truck')) {
-      replyText = `Our Smart Route Optimizer uses the Travelling Salesperson (TSP) algorithm to combine high-fill smart bins (>65%) and pending citizen complaints into the shortest ordered collection path for sanitation vehicles!`;
-      actionChips = [
-        { label: '🚛 View Staff Optimized Routes', action: 'goto_staff' }
-      ];
-    } else if (query.includes('segregat') || query.includes('recycle') || query.includes('green') || query.includes('blue') || query.includes('red')) {
-      replyText = `Waste Segregation Guide:\n🟢 Green Bin = Wet Organic Waste (kitchen waste, peels, food scraps)\n🔵 Blue Bin = Dry Recyclables (plastic bottles, paper, cardboard, glass)\n🔴 Red Bin = Household Hazardous (paints, chemicals, syringes, batteries)\n🖤 E-Waste = Schedule doorstep pickup!`;
-      actionChips = [
-        { label: '🧠 Play Segregation Quiz (+Points)', action: 'play_quiz' }
-      ];
-    } else if (query.includes('points') || query.includes('reward') || query.includes('leaderboard')) {
-      replyText = `You earn Eco Points by:\n• Reporting waste issues (+30 pts)\n• Scheduling doorstep E-waste pickup (+40 pts)\n• Attempting daily waste segregation quizzes (+50 pts)\nTop citizens and RWA societies win official municipal Swachh Ambassador awards!`;
-      actionChips = [
-        { label: '🏆 View Society Leaderboards', action: 'play_quiz' }
-      ];
-    } else if (query.includes('heatmap') || query.includes('analytics') || query.includes('hotspot')) {
-      replyText = `Our Heatmap Analytics engine plots real-time complaint density and bin fill frequencies across city wards to identify chronic waste dumping hotspots.`;
-      actionChips = [
-        { label: '🗺️ Open Heatmap Analytics', action: 'goto_heatmap' }
-      ];
-    } else if (query.includes('report pdf') || query.includes('sustainability') || query.includes('co2')) {
-      replyText = `Our Sustainability Impact Generator calculates monthly metrics:\n• Total waste collected in kg\n• Landfill diversion rate %\n• CO2 emissions offset in kg\n• Equivalent trees saved`;
-      actionChips = [
-        { label: '📄 Generate Impact Audit Report', action: 'goto_reports' }
-      ];
-    } else {
-      replyText = `I am your Ecobin Swachh AI Assistant. I can guide you through reporting grievances, monitoring smart dustbins, calculating eco-points, or navigating any platform module!`;
-      actionChips = [
-        { label: '🚨 Report Waste', action: 'report_issue' },
-        { label: '🗑️ Smart Bins Map', action: 'goto_bins' },
-        { label: '🚛 Staff Routes', action: 'goto_staff' },
-        { label: '🗺️ Heatmap Analytics', action: 'goto_heatmap' }
-      ];
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+      const llmUrl = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?model=openai`;
+      const llmRes = await fetch(llmUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (llmRes.ok) {
+        const textResponse = await llmRes.text();
+        if (textResponse && textResponse.trim().length > 10) {
+          // LLM responded successfully!
+          const localCheck = getLocalKnowledgeResponse(trimmedQuery);
+          return res.status(200).json({
+            success: true,
+            reply: textResponse.trim(),
+            chips: localCheck.chips || [
+              { label: '🚨 Report Waste Issue', action: 'report_issue' },
+              { label: '🗑️ Live Smart Bins Map', action: 'goto_bins' }
+            ],
+            source: 'llm',
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    } catch (llmErr) {
+      // LLM timed out or had connection glitch - smoothly fall back to our local knowledge engine
+      console.log('LLM API fallback to local NLP engine:', llmErr.message);
     }
 
-    res.status(200).json({
+    // 2. Local Knowledge Engine (Always Instant, 100% Guaranteed)
+    const localResult = getLocalKnowledgeResponse(trimmedQuery);
+    return res.status(200).json({
       success: true,
-      reply: replyText,
-      chips: actionChips,
+      reply: localResult.reply,
+      chips: localResult.chips,
+      source: 'local_nlp',
       timestamp: new Date().toISOString()
     });
+
   } catch (err) {
+    console.error('AI Chat Error:', err);
     res.status(500).json({ success: false, message: 'AI Chat processing failed.', error: err.message });
   }
 };

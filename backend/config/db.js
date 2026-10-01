@@ -125,6 +125,22 @@ const initialDatabaseState = {
 
   bins: [
     {
+      id: 101,
+      bin_code: 'BIN001',
+      location_name: 'Physical IoT Smart Bin (Desk Prototype)',
+      latitude: 28.6315,
+      longitude: 77.2167,
+      fill_percentage: 0,
+      distance_cm: 10.3,
+      battery_level: 100,
+      threshold_value: 80,
+      ward_area: 'Ward 14 - Connaught Place',
+      status: 'normal',
+      is_hardware: true,
+      device_type: 'ESP32_HCSR04',
+      last_updated: new Date().toISOString()
+    },
+    {
       id: 1,
       bin_code: 'ESP32-BIN-101',
       location_name: 'Connaught Place Block Inner Circle',
@@ -260,6 +276,17 @@ class ProductionDatabase {
             this.data.users.push(u);
           }
         }
+        // Ensure BIN001 hardware prototype bin exists
+        if (!this.data.bins) this.data.bins = [];
+        const hardwareBin = initialDatabaseState.bins.find(b => b.bin_code === 'BIN001');
+        const existingBin = this.data.bins.find(b => b.bin_code === 'BIN001');
+        if (!existingBin && hardwareBin) {
+          this.data.bins.unshift(JSON.parse(JSON.stringify(hardwareBin)));
+        } else if (existingBin) {
+          existingBin.is_hardware = true;
+          if (existingBin.distance_cm === undefined) existingBin.distance_cm = 10.3;
+        }
+
         // Update admin name to Saurabh Pandey (Super Admin)
         const adminUser = this.data.users.find(u => u.email === 'admin@ecobin.in');
         if (adminUser) {

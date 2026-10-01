@@ -5,7 +5,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { authenticateToken, requireRole } = require('../middleware/auth');
+const { authenticateToken, optionalAuth, requireRole } = require('../middleware/auth');
 
 const authController = require('../controllers/authController');
 const complaintController = require('../controllers/complaintController');
@@ -45,13 +45,35 @@ router.get('/pickups', authenticateToken, pickupController.getPickupRequests);
 router.patch('/pickups/:id/status', authenticateToken, requireRole('staff', 'admin'), pickupController.updatePickupStatus);
 
 // --- Smart Bin IoT Routes ---
-router.get('/bins', authenticateToken, binController.getBins);
+router.get('/bins', optionalAuth, binController.getBins);
+router.get('/bin/info', binController.getNetworkInfo); // Returns local IP & Arduino setup config
+router.get('/bins/network-info', binController.getNetworkInfo);
+router.post('/bin/update', binController.ingestTelemetry); // Direct match for user's ESP32 API_URL
+router.post('/bins/update', binController.ingestTelemetry);
 router.post('/bins/telemetry', binController.ingestTelemetry); // Public ESP32 endpoint
+router.post('/bin/telemetry', binController.ingestTelemetry);
 router.get('/bins/:id', authenticateToken, binController.getBinById);
 router.patch('/bins/:id/threshold', authenticateToken, requireRole('admin'), binController.updateThreshold);
 router.post('/bins/:id/trigger-dump', authenticateToken, requireRole('admin'), binController.triggerDump);
 router.post('/bins/:id/empty', authenticateToken, requireRole('staff', 'admin'), binController.emptyBin);
 router.post('/bins/toggle-simulator', authenticateToken, requireRole('admin'), binController.toggleSimulator);
+
+// --- USB Data Cable Serial Port Routes ---
+const serialBridge = require('../services/serialBridge');
+router.get('/serial/ports', async (req, res) => {
+  const ports = await serialBridge.listAvailablePorts();
+  res.status(200).json({ success: true, ports, isConnected: serialBridge.isConnected, activePort: serialBridge.activePortPath });
+});
+router.post('/serial/connect', async (req, res) => {
+  const { port } = req.body;
+  if (!port) return res.status(400).json({ success: false, message: 'Port path is required.' });
+  const success = serialBridge.connect(port);
+  res.status(200).json({ success, message: success ? `Connected to ${port}` : `Failed to connect to ${port}` });
+});
+router.post('/serial/disconnect', (req, res) => {
+  serialBridge.disconnect();
+  res.status(200).json({ success: true, message: 'Disconnected from USB serial port.' });
+});
 
 // --- Admin & Analytics Routes ---
 router.get('/admin/summary-stats', authenticateToken, adminController.getSummaryStats);
@@ -66,7 +88,7 @@ router.get('/eco/summary', authenticateToken, ecoController.getEcoSummary);
 router.post('/eco/quiz-submit', authenticateToken, ecoController.submitQuiz);
 
 // --- Notification Routes ---
-router.get('/notifications', authenticateToken, notificationController.getNotifications);
+router.get('/notifications', optionalAuth, notificationController.getNotifications);
 router.patch('/notifications/:id/read', authenticateToken, notificationController.markRead);
 
 // --- AI Classifier & AI Chat Endpoints ---

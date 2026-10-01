@@ -69,13 +69,32 @@ export default function Navbar({
       };
 
       socket.on(eventName, handleNotif);
-      socket.on('threshold_alert', () => loadNotifications());
 
       return () => {
         socket.off(eventName, handleNotif);
       };
     }
   }, [user]);
+
+  // Global real-time dustbin full alert listener for notification bell
+  useEffect(() => {
+    const handleThresholdAlert = (alertData) => {
+      const newAlertNotif = {
+        id: Date.now(),
+        message: `🚨 Dustbin Full Alert: ${alertData.binCode || 'BIN001'} reached ${alertData.fillPercentage}%! Immediate pickup required.`,
+        created_at: new Date().toISOString(),
+        is_read: 0
+      };
+      setNotifications(prev => [newAlertNotif, ...prev]);
+      setUnreadCount(prev => prev + 1);
+    };
+
+    socket.on('threshold_alert', handleThresholdAlert);
+
+    return () => {
+      socket.off('threshold_alert', handleThresholdAlert);
+    };
+  }, []);
 
   const loadNotifications = async () => {
     try {
@@ -183,20 +202,19 @@ export default function Navbar({
               </button>
             )}
 
-            {/* Smart Bins Map */}
-            {user && (
-              <button
-                onClick={() => handleNavClick('bins')}
-                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                  activeTab === 'bins'
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
-                }`}
-              >
-                <Recycle className="w-3.5 h-3.5" />
-                <span>Smart Bins</span>
-              </button>
-            )}
+            {/* IoT Smart Bins */}
+            <button
+              onClick={() => handleNavClick('bins')}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                activeTab === 'bins'
+                  ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-md shadow-cyan-600/25 ring-1 ring-cyan-400/40'
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
+              }`}
+            >
+              <Radio className="w-3.5 h-3.5 text-cyan-500 animate-pulse" />
+              <span>IoT Smart Bins</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300">ESP32</span>
+            </button>
 
             {/* Staff Routes */}
             {(user?.role === 'staff' || user?.role === 'admin') && (
@@ -452,15 +470,16 @@ export default function Navbar({
               </button>
             )}
 
-            {user && (
-              <button
-                onClick={() => handleNavClick('bins')}
-                className={`w-full flex items-center space-x-2.5 px-3 py-2.5 rounded-xl text-xs font-bold ${activeTab === 'bins' ? 'bg-emerald-600 text-white' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-              >
-                <Recycle className="w-4 h-4" />
-                <span>Smart Bins Live Map</span>
-              </button>
-            )}
+            <button
+              onClick={() => handleNavClick('bins')}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold ${activeTab === 'bins' ? 'bg-cyan-600 text-white' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+            >
+              <div className="flex items-center space-x-2.5">
+                <Radio className="w-4 h-4 text-cyan-400" />
+                <span>IoT Smart Bins (ESP32)</span>
+              </div>
+              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-cyan-400/20 text-cyan-300">LIVE</span>
+            </button>
 
             {(user?.role === 'staff' || user?.role === 'admin') && (
               <button

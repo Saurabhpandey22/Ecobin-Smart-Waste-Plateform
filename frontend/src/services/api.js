@@ -80,16 +80,23 @@ export const api = {
   getPickups: () => request('/pickups'),
   updatePickupStatus: (id, payload) => request(`/pickups/${id}/status`, { method: 'PATCH', body: JSON.stringify(payload) }),
 
-  // Bins
+  // Bins & IoT Hardware
   getBins: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return request(`/bins?${query}`);
   },
   getBinById: (id) => request(`/bins/${id}`),
+  getNetworkInfo: () => request('/bin/info'),
+  sendHardwareTelemetry: (payload) => request('/bin/update', { method: 'POST', body: JSON.stringify(payload) }),
   updateThreshold: (id, threshold_value) => request(`/bins/${id}/threshold`, { method: 'PATCH', body: JSON.stringify({ threshold_value }) }),
   triggerDump: (id, addedFill = 35) => request(`/bins/${id}/trigger-dump`, { method: 'POST', body: JSON.stringify({ addedFill }) }),
   emptyBin: (id) => request(`/bins/${id}/empty`, { method: 'POST' }),
   toggleSimulator: () => request('/bins/toggle-simulator', { method: 'POST' }),
+
+  // USB Serial Cable API
+  getSerialPorts: () => request('/serial/ports'),
+  connectSerialPort: (port) => request('/serial/connect', { method: 'POST', body: JSON.stringify({ port }) }),
+  disconnectSerialPort: () => request('/serial/disconnect', { method: 'POST' }),
 
   // Admin
   getSummaryStats: () => request('/admin/summary-stats'),

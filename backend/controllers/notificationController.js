@@ -6,10 +6,10 @@ const db = require('../config/db');
 
 exports.getNotifications = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user ? req.user.id : null;
     const notifications = db.findMany(
       'notifications',
-      n => n.user_id === userId,
+      n => userId ? (n.user_id === userId || n.user_id === null) : true,
       (a, b) => new Date(b.created_at) - new Date(a.created_at)
     );
 

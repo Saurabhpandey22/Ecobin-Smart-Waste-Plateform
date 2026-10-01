@@ -74,8 +74,36 @@ const requireRole = (...allowedRoles) => {
   };
 };
 
+const optionalAuth = (req, res, next) => {
+  let token = null;
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (req.cookies && req.cookies.accessToken) {
+    token = req.cookies.accessToken;
+  }
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const user = db.findOne('users', u => u.id === decoded.id);
+      if (user) {
+        req.user = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          ward_area: user.ward_area
+        };
+      }
+    } catch (err) {}
+  }
+  next();
+};
+
 module.exports = {
   JWT_SECRET,
   authenticateToken,
+  optionalAuth,
   requireRole
 };

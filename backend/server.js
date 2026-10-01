@@ -83,8 +83,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Initialize IoT Simulator with socket instance
+// Initialize IoT Simulator & Serial USB Bridge with socket instance
 iotSimulator.init(io);
+const serialBridge = require('./services/serialBridge');
+serialBridge.init(io);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {

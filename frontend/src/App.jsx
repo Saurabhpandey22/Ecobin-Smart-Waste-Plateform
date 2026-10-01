@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Lock, ShieldAlert } from 'lucide-react';
+import { Lock, ShieldAlert, AlertTriangle, X, Bell, Radio } from 'lucide-react';
 import Navbar from './components/Navbar';
 import HomeView from './components/HomeView';
 import GuideChatbot from './components/GuideChatbot';
@@ -14,7 +14,7 @@ import HeatmapView from './components/HeatmapView';
 import AIAssistantView from './components/AIAssistantView';
 import Footer from './components/Footer';
 
-import { api, setAuthToken, getAuthToken } from './services/api';
+import { api, setAuthToken, getAuthToken, socket } from './services/api';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -24,6 +24,69 @@ export default function App() {
   const [showSustainabilityModal, setShowSustainabilityModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const [activeAlert, setActiveAlert] = useState(null);
+
+  // Play audio synthesizer alert sound & voice announcement on threshold breach
+  const playAlertSound = () => {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const playBeep = (freq, startTime, duration) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0.3, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
+
+      const now = audioCtx.currentTime;
+      playBeep(880, now, 0.2);
+      playBeep(1174, now + 0.25, 0.2);
+      playBeep(1567, now + 0.5, 0.35);
+    } catch (e) {}
+
+    // Text-to-speech announcement
+    try {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance("Alert! Dustbin full. Capacity exceeded 80 percent.");
+        utterance.rate = 1.05;
+        utterance.pitch = 1.1;
+        window.speechSynthesis.speak(utterance);
+      }
+    } catch (e) {}
+  };
+
+  // Socket listener for dustbin full (>= 80%) threshold alert
+  useEffect(() => {
+    const handleThresholdAlert = (alertData) => {
+      setActiveAlert(alertData);
+      playAlertSound();
+
+      // Native desktop notification if permission granted
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(`🚨 DUSTBIN FULL ALERT (${alertData.fillPercentage}%)`, {
+          body: `Smart Dustbin ${alertData.binCode || 'BIN001'} reached ${alertData.fillPercentage}% capacity! Immediate clearance required.`,
+          icon: '/favicon.ico'
+        });
+      }
+    };
+
+    // Request notification permission once
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+
+    socket.on('threshold_alert', handleThresholdAlert);
+
+    return () => {
+      socket.off('threshold_alert', handleThresholdAlert);
+    };
+  }, []);
 
   // Initialize Auth on App Load (Preserves user JWT token across page refresh)
   useEffect(() => {
@@ -237,6 +300,59 @@ export default function App() {
         onClose={() => setShowAuthModal(false)}
         onLoginSuccess={handleLoginSuccess}
       />
+
+      {/* Floating Real-Time DUSTBIN FULL (>=80%) Alert Toast Banner */}
+      {activeAlert && (
+        <div className="fixed top-24 right-4 sm:right-8 z-50 max-w-md w-[calc(100%-2rem)] p-4 rounded-3xl bg-gradient-to-r from-rose-950 via-slate-900 to-rose-950 text-white border-2 border-rose-500 shadow-2xl shadow-rose-500/40 animate-in slide-in-from-top-4 duration-300">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-bounce">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-[10px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full tracking-wider uppercase">
+                    DUSTBIN FULL ({activeAlert.fillPercentage}%)
+                  </span>
+                  <span className="text-[10px] text-rose-300 font-mono">
+                    {activeAlert.binCode}
+                  </span>
+                </div>
+                <h4 className="font-extrabold text-sm text-white mt-1">
+                  Waste Capacity Exceeded 80%!
+                </h4>
+                <p className="text-xs text-rose-200/80 mt-0.5">
+                  {activeAlert.message || `Dustbin reached ${activeAlert.fillPercentage}%. Immediate clearance required.`}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveAlert(null)}
+              className="p-1 rounded-full text-rose-300 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="mt-3 flex items-center justify-end space-x-2 pt-2 border-t border-rose-800/40">
+            <button
+              onClick={() => {
+                setActiveTab('bins');
+                setActiveAlert(null);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md transition-colors"
+            >
+              View Dustbin
+            </button>
+            <button
+              onClick={() => setActiveAlert(null)}
+              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
